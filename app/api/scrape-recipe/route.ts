@@ -55,8 +55,8 @@ export async function POST(req: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const getLogo: any = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { src  }: any = document.querySelector('.tasty-recipes-image img');
-        return src ? src?.src : '';
+        const elementLogo: any = document.querySelector('.tasty-recipes-image img');
+        return elementLogo ? elementLogo?.src : '';
       };
 
       const getIngredients = () => {
