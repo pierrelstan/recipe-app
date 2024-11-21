@@ -1,7 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-        domains: ['pinchofyum.com'], // Add the hostname here
+      images: {
+        remotePatterns: [
+          {
+            protocol: 'https',
+            hostname: 'pinchofyum.com',
+            pathname: '**',
+          },
+        ],
       },
     };
 
