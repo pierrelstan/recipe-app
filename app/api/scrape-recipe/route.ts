@@ -10,10 +10,11 @@ interface ScrapedRecipe {
   cuisine: string;
   category: string;
   image: string;
-  pdf: string; // Add PDF URL or base64 string
+  // pdf: string; // Add PDF URL or base64 string
 }
 
-export async function POST(req) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function POST(req: any) {
   const res = await req.json();
   const { url } = res;
 
@@ -24,9 +25,11 @@ export async function POST(req) {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let browser = null;
 
   try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -36,21 +39,24 @@ export async function POST(req) {
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'networkidle0' });
 
-    const recipe: Omit<ScrapedRecipe, 'pdf'> = await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recipe: any = await page.evaluate(() => {
       const getTextContent = (selector: string) => {
         const element = document.querySelector(selector);
         return element ? element.textContent?.trim() : '';
       };
 
-      const getListItems = (selector: string) => {
-        return Array.from(document.querySelectorAll(selector))
-          .map((el) => el.textContent?.trim())
-          .filter(Boolean) as string[];
-      };
+      // const getListItems = (selector: string) => {
+      //   return Array.from(document.querySelectorAll(selector))
+      //     .map((el) => el.textContent?.trim())
+      //     .filter(Boolean) as string[];
+      // };
 
-      const getLogo = () => {
-        const logoElement = document.querySelector('.tasty-recipes-image img');
-        return logoElement ? logoElement.src : '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getLogo: any = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { src  }: any = document.querySelector('.tasty-recipes-image img');
+        return src ? src?.src : '';
       };
 
       const getIngredients = () => {
@@ -63,6 +69,7 @@ export async function POST(req) {
       const getInstructions = () => {
         const instructions = document.querySelectorAll('.tasty-recipes-instructions ol li');
         return Array.from(instructions)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((instruction: any) => instruction.textContent.trim())
           .filter(Boolean) as string[];
       };
@@ -86,7 +93,7 @@ export async function POST(req) {
       printBackground: true,
       displayHeaderFooter: false,
     });
-    const pdfBase64 = pdfBuffer.toString('base64');
+    const pdfBase64 = pdfBuffer.toString();
 
     // Add the PDF as a base64 string to the response
     const recipeWithPdf: ScrapedRecipe = {

@@ -26,7 +26,6 @@ export function RecipePortfolio() {
   const [newRecipe, setNewRecipe] = useState({
     name: "",
     url: "",
-    description: "",
   });
   const [loading, setLoading] = useState(false);
 
