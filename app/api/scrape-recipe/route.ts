@@ -35,7 +35,9 @@ export async function POST(req: any) {
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.goto(url);
+    await page.waitForTimeout(5000);
+
 
     // Scraping the recipe using Playwright's page.evaluate method
     const recipe = await page.evaluate(() => {
