@@ -1,4 +1,5 @@
-import { chromium } from 'playwright';
+import * as cheerio from 'cheerio';
+import fetch from 'node-fetch';
 
 interface ScrapedRecipe {
   title: string;
@@ -10,7 +11,7 @@ interface ScrapedRecipe {
   cuisine: string;
   category: string;
   image: string;
-  // pdf: string; // Add PDF URL or base64 string
+  pdf?: string; // Add PDF URL or base64 string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,74 +26,45 @@ export async function POST(req: any) {
     });
   }
 
-  let browser = null;
-
   try {
-    // Launch the browser using Playwright (Chromium)
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
+    // Fetch the HTML content of the webpage
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch the webpage.');
+    }
+    const html = await response.text();
 
-    const page = await browser.newPage();
-    await page.goto(url);
-    await page.waitForTimeout(5000);
+    // Load the HTML into Cheerio
+    const $ = cheerio.load(html);
 
+    // Scraping logic using Cheerio
+    const getTextContent = (selector: string) => $(selector).text().trim() || '';
 
-    // Scraping the recipe using Playwright's page.evaluate method
-    const recipe = await page.evaluate(() => {
-      const getTextContent = (selector: string) => {
-        const element = document.querySelector(selector);
-        return element ? element.textContent?.trim() : '';
-      };
+    const getLogo = () => $('.tasty-recipes-image img').attr('src') || '';
 
-      const getLogo = () => {
-        const elementLogo: HTMLImageElement | null = document.querySelector('.tasty-recipes-image img');
-        return elementLogo ? elementLogo.src : '';
-      };
+    const getIngredients = () => 
+      $('.tasty-recipes-ingredients ul li')
+        .map((_, el) => $(el).text().trim())
+        .get();
 
-      const getIngredients = () => {
-        const ingredients = document.querySelectorAll('.tasty-recipes-ingredients ul li');
-        return Array.from(ingredients)
-          .map((ingredient) => ingredient.textContent?.trim())
-          .filter(Boolean) as string[];
-      };
+    const getInstructions = () => 
+      $('.tasty-recipes-instructions ol li')
+        .map((_, el) => $(el).text().trim())
+        .get();
 
-      const getInstructions = () => {
-        const instructions = document.querySelectorAll('.tasty-recipes-instructions ol li');
-        return Array.from(instructions)
-          .map((instruction) => instruction.textContent.trim())
-          .filter(Boolean) as string[];
-      };
-
-      return {
-        title: getTextContent('h1') || document.title,
-        ingredients: getIngredients(),
-        instructions: getInstructions(),
-        servings: getTextContent('.servings'),
-        prepTime: getTextContent('.prep-time'),
-        cookTime: getTextContent('.cook-time'),
-        category: getTextContent('.category'),
-        cuisine: getTextContent('.cuisine'),
-        image: getLogo(),
-      };
-    });
-
-    // Generate the PDF as a base64 string
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      displayHeaderFooter: false,
-    });
-    const pdfBase64 = pdfBuffer.toString('base64');
-
-    // Add the PDF as a base64 string to the response
-    const recipeWithPdf: ScrapedRecipe = {
-      ...recipe,
-      pdf: `data:application/pdf;base64,${pdfBase64}`,
+    const recipe: ScrapedRecipe = {
+      title: getTextContent('h1') || $('title').text(),
+      ingredients: getIngredients(),
+      instructions: getInstructions(),
+      servings: getTextContent('.servings'),
+      prepTime: getTextContent('.prep-time'),
+      cookTime: getTextContent('.cook-time'),
+      cuisine: getTextContent('.cuisine'),
+      category: getTextContent('.category'),
+      image: getLogo(),
     };
 
-    return new Response(JSON.stringify(recipeWithPdf), {
+    return new Response(JSON.stringify(recipe), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -102,9 +74,5 @@ export async function POST(req: any) {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 }
